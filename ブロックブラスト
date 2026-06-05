@@ -1,0 +1,1175 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Block Blast - 華雅王朝宮廷版</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons for UI -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: 中華風の美しさを際立たせる毛筆調＆優美なセリフ体 -->
+    <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+JP:wght@600;900&family=Outfit:wght@400;600;800;900&display=swap" rel="stylesheet">
+    
+    <style>
+        body, html {
+            font-family: 'Outfit', 'Noto Serif JP', 'Segoe UI', sans-serif;
+            /* 豪華な深紅（朱砂）と漆黒が織りなす中国宮廷風グラデーション背景 */
+            background: radial-gradient(circle at center, #3b0712 0%, #0c0104 100%);
+            user-select: none;
+            -webkit-user-select: none;
+            overflow-x: hidden;
+            overflow-y: auto; /* 縦スクロールを有効化 */
+            width: 100%;
+            height: 100%;
+            scroll-behavior: smooth;
+        }
+        .chinese-font {
+            font-family: 'Ma Shan Zheng', cursive, 'Noto Serif JP', serif;
+        }
+        .serif-font {
+            font-family: 'Noto Serif JP', serif;
+        }
+        /* 中華意匠：豪華な雷紋（ゴールド・フレットパターン）を模した宮廷風ボーダー */
+        .dynasty-border {
+            border: 4px solid;
+            border-image: linear-gradient(to bottom, #f59e0b, #d97706, #fef08a, #b45309, #f59e0b) 1;
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.85), inset 0 0 20px rgba(180, 83, 9, 0.4);
+            position: relative;
+        }
+        /* 盤面の四隅に配置する伝統的な祥雲紋（飾り枠）のシミュレート */
+        .dynasty-border::before {
+            content: '🏮';
+            position: absolute;
+            top: -12px;
+            left: -12px;
+            font-size: 16px;
+            z-index: 10;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+        }
+        .dynasty-border::after {
+            content: '🏮';
+            position: absolute;
+            top: -12px;
+            right: -12px;
+            font-size: 16px;
+            z-index: 10;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+        }
+        /* 金糸で装飾された伝統の色彩テキスト */
+        .dynasty-gold-text {
+            background: linear-gradient(to right, #ffe082, #ffd54f, #ffb300, #ff8f00);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.4);
+        }
+        /* 2Dグリッドのセル：高級な黒漆塗りの器をイメージした深み */
+        .grid-cell {
+            box-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.9), inset 0 -1px 2px rgba(255, 255, 255, 0.03);
+            touch-action: none;
+            background: #110306;
+        }
+        /* ドラッグ中のブロックのスタイル */
+        .dragging {
+            opacity: 0.15;
+            transform: scale(0.85);
+        }
+        /* 手札が選択された時の中華ランタン風のゆらめきパルス */
+        @keyframes dragon-pulse {
+            0%, 100% { box-shadow: 0 0 8px #f59e0b, inset 0 0 6px rgba(217, 119, 6, 0.5); border-color: rgba(245, 158, 11, 0.7); }
+            50% { box-shadow: 0 0 24px #b45309, inset 0 0 16px rgba(180, 83, 9, 0.9); border-color: rgba(180, 83, 9, 1); }
+        }
+        .selected-hand-slot {
+            animation: dragon-pulse 1.2s infinite;
+            background: rgba(180, 83, 9, 0.15) !important;
+            border: 2px solid #b45309 !important;
+            border-radius: 14px;
+        }
+        /* 伝統工芸「七宝焼き（Cloisonné）」をイメージした金糸縁取りの高級2Dブロック */
+        .oriental-block {
+            position: relative;
+            box-shadow: 
+                inset 0 4px 5px rgba(255, 255, 255, 0.45), 
+                inset 0 -5px 6px rgba(0, 0, 0, 0.5),
+                0 4px 10px rgba(0, 0, 0, 0.65);
+            /* 各セグメントを分かつ優美な金糸（金枠）の表現 */
+            border: 1.5px solid #fbbf24;
+        }
+        .oriental-block::after {
+            content: '';
+            position: absolute;
+            top: 10%;
+            left: 10%;
+            width: 80%;
+            height: 28%;
+            background: linear-gradient(to bottom, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0) 100%);
+            border-radius: 3px;
+            pointer-events: none;
+        }
+        /* 龍の息吹：ブロックが昇天（消滅）する際のエフェクト */
+        @keyframes dragon-pop {
+            0% { transform: scale(1); filter: brightness(1); opacity: 1; }
+            30% { transform: scale(1.18); filter: brightness(1.9) saturate(1.5); opacity: 0.95; }
+            100% { transform: scale(0); filter: brightness(2.5); opacity: 0; }
+        }
+        .cell-pop {
+            animation: dragon-pop 0.38s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        /* ドラッグ中に生まれるリアルな影 */
+        .drag-shadow {
+            filter: drop-shadow(0 15px 12px rgba(0, 0, 0, 0.7));
+        }
+    </style>
+</head>
+<body class="min-h-screen text-amber-100 flex flex-col items-center justify-start p-4 select-none pb-12 gap-2">
+
+    <!-- ヘッダー / スコアボード -->
+    <header class="w-full max-w-[340px] flex justify-between items-center mt-2 px-1 z-10">
+        <div>
+            <h1 class="text-2xl md:text-3xl tracking-widest chinese-font dynasty-gold-text">
+                龍華爆砕
+            </h1>
+            <p class="text-[8px] text-amber-500 font-bold tracking-widest uppercase serif-font">CHINESE DYNASTY BLAST</p>
+        </div>
+        <div class="flex gap-1.5">
+            <div class="bg-stone-950/80 border border-amber-900/40 rounded-lg px-2.5 py-0.5 text-center shadow-lg backdrop-blur-md">
+                <p class="text-[8px] text-amber-500 font-bold uppercase tracking-wider serif-font">得点</p>
+                <p id="score-val" class="text-base font-black text-amber-300">0</p>
+            </div>
+            <div class="bg-stone-950/80 border border-amber-900/40 rounded-lg px-2.5 py-0.5 text-center shadow-lg backdrop-blur-md">
+                <p class="text-[8px] text-amber-500 font-bold uppercase tracking-wider serif-font">最高</p>
+                <p id="best-val" class="text-base font-black text-yellow-400">0</p>
+            </div>
+        </div>
+    </header>
+
+    <div class="h-8 flex items-center justify-center my-0.5 z-10">
+        <div id="combo-badge" class="hidden transform scale-0 transition-transform duration-300 bg-gradient-to-r from-amber-600 via-red-600 to-yellow-500 text-slate-950 font-black px-4 py-0.5 rounded-full text-[10px] shadow-lg shadow-red-500/30 serif-font border border-yellow-300">
+            🔥 <span id="combo-count">2</span> 連鎖功！ (+<span id="combo-bonus">50</span>) 🔥
+        </div>
+        <div id="action-msg" class="hidden text-yellow-400 font-extrabold tracking-widest text-[10px] uppercase animate-pulse text-center serif-font">
+            方術を使用する場所をタップしてください
+        </div>
+    </div>
+
+    <!-- 2Dパズル盤面メインコンテナ -->
+    <main class="w-full max-w-[340px] aspect-square px-1 relative flex items-center justify-center">
+        <!-- 盤面全体を中国伝統の飾り枠と漆調のダークレッドで構築 -->
+        <div id="game-board" class="w-full h-full rounded-2xl p-2.5 grid grid-cols-8 grid-rows-8 gap-1 bg-stone-950/95 dynasty-border">
+            <!-- JSで動的に8x8の格子タイルを生成 -->
+        </div>
+    </main>
+
+    <!-- お助けアイテムボタン（宮廷・東洋ファンタジー風のネーミングに変更） -->
+    <section class="w-full max-w-[340px] px-1 my-1.5 flex justify-around gap-1.5 z-10">
+        <!-- シャッフル (易占シャッフル) -->
+        <button id="btn-shuffle" class="flex-1 py-1.5 px-0.5 bg-stone-950/95 hover:bg-stone-900 active:scale-95 border border-amber-900/40 rounded-lg flex flex-col items-center justify-center gap-0.5 transition-all shadow-md relative group">
+            <span class="absolute -top-1.5 -right-1 bg-amber-600 text-[8px] font-bold px-1.5 py-0.2 rounded-full text-slate-950" id="count-shuffle">2</span>
+            <i class="fa-solid fa-arrows-spin text-amber-500 text-sm"></i>
+            <span class="text-[7px] font-bold text-amber-300 serif-font">天命転換</span>
+        </button>
+        <!-- 手札消去 (破邪消滅) -->
+        <button id="btn-delete-block" class="flex-1 py-1.5 px-0.5 bg-stone-950/95 hover:bg-stone-900 active:scale-95 border border-amber-900/40 rounded-lg flex flex-col items-center justify-center gap-0.5 transition-all shadow-md relative group">
+            <span class="absolute -top-1.5 -right-1 bg-red-600 text-[8px] font-bold px-1.5 py-0.2 rounded-full text-slate-950" id="count-delete-block">1</span>
+            <i class="fa-solid fa-fire-burner text-red-500 text-sm"></i>
+            <span class="text-[7px] font-bold text-amber-300 serif-font">符呪消去</span>
+        </button>
+        <!-- 1マス破壊 (八卦崩砕) -->
+        <button id="btn-bomb" class="flex-1 py-1.5 px-0.5 bg-stone-950/95 hover:bg-stone-900 active:scale-95 border border-amber-900/40 rounded-lg flex flex-col items-center justify-center gap-0.5 transition-all shadow-md relative group">
+            <span class="absolute -top-1.5 -right-1 bg-yellow-500 text-[8px] font-bold px-1.5 py-0.2 rounded-full text-slate-950" id="count-bomb">1</span>
+            <i class="fa-solid fa-bahai text-yellow-500 text-sm"></i>
+            <span class="text-[7px] font-bold text-amber-300 serif-font">神槌崩砕</span>
+        </button>
+    </section>
+
+    <!-- 手札（ブロックの候補3つ）のコンテナ -->
+    <footer class="w-full max-w-[340px] bg-stone-950/90 rounded-2xl p-2.5 border border-amber-900/40 backdrop-blur-md mb-2 z-10 shadow-xl">
+        <div id="hand-container" class="flex justify-between items-center gap-1.5 h-16">
+            <!-- ここに手札が入ります -->
+        </div>
+    </footer>
+
+    <!-- ゲームオーバー画面（伝統的な宮廷仕様） -->
+    <div id="gameover-modal" class="hidden fixed inset-0 bg-stone-950/95 backdrop-blur-md flex items-center justify-center z-50 p-4">
+        <div class="bg-stone-900 border-2 border-amber-700 rounded-2xl p-8 max-w-xs w-full text-center shadow-2xl transform scale-95 transition-transform duration-300">
+            <div class="w-20 h-20 bg-red-950/30 border border-red-500/20 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4 text-4xl animate-pulse">
+                <i class="fa-solid fa-scroll"></i>
+            </div>
+            <h2 class="text-3xl font-black text-red-500 mb-2 chinese-font">終局</h2>
+            <p class="text-amber-200/60 text-xs mb-6 serif-font">配置可能な空間が失われました</p>
+            
+            <div class="bg-amber-950/10 rounded-xl p-4 mb-6 border border-amber-900/30">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-amber-500/80 text-xs font-semibold serif-font">今回の得点</span>
+                    <span id="final-score" class="text-xl font-black text-amber-300">0</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-amber-500/80 text-xs font-semibold serif-font">最高の栄誉</span>
+                    <span id="final-best" class="text-lg font-bold text-yellow-400">0</span>
+                </div>
+            </div>
+
+            <button id="btn-restart" class="w-full bg-gradient-to-r from-amber-600 to-yellow-600 text-slate-950 font-black py-3 px-6 rounded-xl shadow-lg shadow-amber-500/20 transition-all flex items-center justify-center gap-2 text-sm serif-font">
+                <i class="fa-solid fa-arrows-rotate"></i>
+                再び挑む
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new AudioCtx();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        // 古筝 (Guzheng) や 木魚 (Muyu) をWeb Audio APIで生成する
+        function playSound(type) {
+            try {
+                initAudio();
+                if (!audioCtx) return;
+
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                const now = audioCtx.currentTime;
+
+                if (type === 'place') {
+                    // 木魚 (Muyu) の乾いた心地よいポクッという打撃音
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(320, now);
+                    // 急速に周波数を落として木魚特有の響きを作る
+                    osc.frequency.exponentialRampToValueAtTime(140, now + 0.08);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+                    osc.start(now);
+                    osc.stop(now + 0.08);
+                } else if (type === 'clear') {
+                    // 古筝 (Guzheng) の爪弾きサウンド (和音)
+                    // 青・紅・金の清冽な五声調（宮・商・角・徴・羽）
+                    const freqs = [329.63, 392.00, 440.00, 523.25, 587.33]; // E4, G4, A4, C5, D5
+                    freqs.forEach((freq, idx) => {
+                        const subOsc = audioCtx.createOscillator();
+                        const subGain = audioCtx.createGain();
+                        subOsc.type = 'sine';
+                        subOsc.frequency.setValueAtTime(freq, now + idx * 0.04); // アルペジオ(流れる弾き方)
+                        subGain.gain.setValueAtTime(0.08, now + idx * 0.04);
+                        subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.35 + idx * 0.04);
+                        
+                        subOsc.connect(subGain);
+                        subGain.connect(audioCtx.destination);
+                        subOsc.start(now + idx * 0.04);
+                        subOsc.stop(now + 0.45);
+                    });
+                } else if (type === 'combo') {
+                    // コンボ時の五声調上昇アルペジオ
+                    const rootFreq = 261.63; // C4
+                    const steps = [1, 1.125, 1.25, 1.5, 1.667, 2.0]; // ペンタトニックスケールの比率
+                    const currentStep = steps[Math.min(combo, steps.length - 1)];
+                    
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(rootFreq * currentStep, now);
+                    osc.frequency.exponentialRampToValueAtTime(rootFreq * currentStep * 1.5, now + 0.25);
+                    gain.gain.setValueAtTime(0.18, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                    osc.start(now);
+                    osc.stop(now + 0.25);
+                } else if (type === 'item') {
+                    // 悠久の宮廷のベル/編鐘の響き
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(587.33, now); // D5
+                    osc.frequency.setValueAtTime(783.99, now + 0.06); // G5
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                    osc.start(now);
+                    osc.stop(now + 0.25);
+                } else if (type === 'gameover') {
+                    // 重厚な銅鑼 (Gong) の崩壊音
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(200, now);
+                    osc.frequency.linearRampToValueAtTime(50, now + 0.65);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.7);
+                    osc.start(now);
+                    osc.stop(now + 0.7);
+                }
+            } catch (e) {
+                console.log("Audio playing issue: ", e);
+            }
+        }
+    </script>
+
+    <script>
+        const BOARD_SIZE = 8;
+        let board = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(0));
+        let score = 0;
+        let bestScore = parseInt(localStorage.getItem('block_blast_best_dynasty_2d') || '0');
+        let hand = [null, null, null];
+        let combo = 0;
+
+        // タップ＆配置用
+        let selectedHandIndex = null;
+
+        let items = { shuffle: 2, deleteBlock: 1, bomb: 1 };
+        let activeItemMode = 'none';
+
+        // 中国伝統工芸・鉱物・玉石に基づく格式高い伝統色カラーマップ
+        const COLOR_MAP = {
+            yellow: { name: "黄金 (帝王金)", tailwind: 'from-amber-300 via-yellow-500 to-amber-700' }, // 皇帝の金色
+            green: { name: "翡翠 (ジェイド)", tailwind: 'from-emerald-400 via-teal-500 to-emerald-800' }, // 瑞祥の翡翠色
+            cyan: { name: "青花 (コバルト)", tailwind: 'from-cyan-400 via-sky-500 to-blue-800' }, // 青花磁器の藍青
+            purple: { name: "紫檀 (サンダル)", tailwind: 'from-fuchsia-400 via-purple-600 to-purple-950' }, // 高貴な紫檀木
+            pink: { name: "朱砂 (シナバー)", tailwind: 'from-red-400 via-rose-600 to-red-950' }, // 魔除けの辰砂
+            orange: { name: "珊瑚 (コーラル)", tailwind: 'from-orange-400 via-orange-500 to-red-700' }, // 吉兆の紅珊瑚
+            lime: { name: "碧玉 (ジャスパー)", tailwind: 'from-lime-400 via-lime-600 to-green-800' } // 美しい碧玉色
+        };
+
+        const SHAPES = [
+            // --- 通常・標準ブロック ---
+            { matrix: [[1]], colorKey: 'yellow' },
+            { matrix: [[1, 1]], colorKey: 'green' },
+            { matrix: [[1], [1]], colorKey: 'green' },
+            { matrix: [[1, 1, 1]], colorKey: 'cyan' },
+            { matrix: [[1], [1], [1]], colorKey: 'cyan' },
+            { matrix: [[1, 1], [1, 1]], colorKey: 'orange' },
+            { matrix: [[1, 0], [1, 0], [1, 1]], colorKey: 'purple' },
+            { matrix: [[1, 1, 1], [1, 0, 0]], colorKey: 'purple' },
+            { matrix: [[1, 1], [0, 1], [0, 1]], colorKey: 'purple' },
+            { matrix: [[0, 0, 1], [1, 1, 1]], colorKey: 'purple' },
+            { matrix: [[1, 1, 1], [0, 1, 0]], colorKey: 'pink' },
+            { matrix: [[1, 1, 0], [0, 1, 1]], colorKey: 'lime' },
+            { matrix: [[0, 1, 1], [1, 1, 0]], colorKey: 'lime' },
+            
+            // --- 高難易度・特殊ブロック（追加分） ---
+            { matrix: [[1, 1, 1, 1]], colorKey: 'cyan' }, // 4マス直線（横）
+            { matrix: [[1], [1], [1], [1]], colorKey: 'cyan' }, // 4マス直線（縦）
+            { matrix: [[1, 1, 1], [1, 1, 1], [1, 1, 1]], colorKey: 'orange' }, // 3x3 巨大キューブ（置くのがとても難しい！）
+            { matrix: [[0, 1, 0], [1, 1, 1], [0, 1, 0]], colorKey: 'pink' }, // 十字（クロス型・5マス）
+            { matrix: [[1, 0, 1], [1, 1, 1]], colorKey: 'yellow' }, // U字（コ字型・5マス）
+            { matrix: [[1, 1, 1, 1], [1, 0, 0, 0]], colorKey: 'purple' }, // 巨大変形L字（5マス）
+            { matrix: [[1, 1, 0], [0, 1, 0], [0, 1, 1]], colorKey: 'lime' } // Z型ペントミノ（5マス）
+        ];
+
+        // DOM要素
+        const boardEl = document.getElementById('game-board');
+        const scoreValEl = document.getElementById('score-val');
+        const bestValEl = document.getElementById('best-val');
+        const handContainerEl = document.getElementById('hand-container');
+        const gameoverModalEl = document.getElementById('gameover-modal');
+        const finalScoreEl = document.getElementById('final-score');
+        const finalBestEl = document.getElementById('final-best');
+        const btnRestart = document.getElementById('btn-restart');
+        
+        const btnShuffle = document.getElementById('btn-shuffle');
+        const btnDeleteBlock = document.getElementById('btn-delete-block');
+        const btnBomb = document.getElementById('btn-bomb');
+        const countShuffle = document.getElementById('count-shuffle');
+        const countDeleteBlock = document.getElementById('count-delete-block');
+        const countBomb = document.getElementById('count-bomb');
+        
+        const comboBadge = document.getElementById('combo-badge');
+        const comboCount = document.getElementById('combo-count');
+        const comboBonus = document.getElementById('combo-bonus');
+        const actionMsg = document.getElementById('action-msg');
+
+        // ドラッグ状態管理
+        let dragSrcIndex = null;
+        let activeDragEl = null;
+        let dragOffset = { x: 0, y: 0 };
+        
+        // タッチ検出
+        let touchStartPos = { x: 0, y: 0 };
+        let isMovingDrag = false;
+        
+        // 有効ドロップ座標（離した瞬間ブレても記憶スナップで滑らか落下）
+        let lastValidCell = null;
+
+        function initGame() {
+            board = Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill(0));
+            score = 0;
+            combo = 0;
+            items = { shuffle: 2, deleteBlock: 1, bomb: 1 };
+            activeItemMode = 'none';
+            selectedHandIndex = null;
+            lastValidCell = null;
+
+            scoreValEl.textContent = score;
+            bestValEl.textContent = bestScore;
+
+            createBoardCells();
+            generateHand();
+            hideGameover();
+            hideActionMessage();
+            hideComboBadge();
+            updateItemUI();
+        }
+
+        // 盤面格子のセルを作成
+        function createBoardCells() {
+            boardEl.innerHTML = '';
+            for (let r = 0; r < BOARD_SIZE; r++) {
+                for (let c = 0; c < BOARD_SIZE; c++) {
+                    const cell = document.createElement('div');
+                    cell.dataset.row = r;
+                    cell.dataset.col = c;
+                    // 暗朱と漆黒のコントラストによる伝統的なボードスタイル
+                    const bgClass = (r + c) % 2 === 0 ? 'bg-[#1c080d]/90' : 'bg-[#0f0205]/95';
+                    cell.className = `grid-cell w-full h-full rounded-lg ${bgClass} border border-amber-900/10 transition-all duration-150 flex items-center justify-center cursor-pointer`;
+                    
+                    cell.addEventListener('click', () => handleCellClick(r, c));
+                    
+                    boardEl.appendChild(cell);
+                }
+            }
+            updateBoardUI();
+        }
+
+        function updateBoardUI() {
+            const cells = boardEl.children;
+            for (let r = 0; r < BOARD_SIZE; r++) {
+                for (let c = 0; c < BOARD_SIZE; c++) {
+                    const idx = r * BOARD_SIZE + c;
+                    const cell = cells[idx];
+                    const val = board[r][c];
+
+                    const baseBg = (r + c) % 2 === 0 ? 'bg-[#1c080d]/90' : 'bg-[#0f0205]/95';
+                    cell.className = `grid-cell w-full h-full rounded-lg ${baseBg} border border-amber-900/10 transition-all duration-150 flex items-center justify-center cursor-pointer`;
+                    cell.innerHTML = '';
+
+                    if (val !== 0) {
+                        const colorData = COLOR_MAP[val];
+                        cell.classList.remove('bg-[#1c080d]/90', 'bg-[#0f0205]/95', 'border-amber-900/10');
+                        // 七宝焼き調の高級感あふれる金枠ゴールドラインを施す
+                        cell.classList.add('oriental-block', 'bg-gradient-to-br', ...colorData.tailwind.split(' '), 'scale-95', 'rounded-lg');
+                        
+                        const sheen = document.createElement('div');
+                        sheen.className = 'w-full h-full border-t border-l border-white/35 rounded-lg';
+                        cell.appendChild(sheen);
+                    }
+                }
+            }
+        }
+
+        function generateHand() {
+            hand = [getRandomShape(), getRandomShape(), getRandomShape()];
+            renderHand();
+            checkGameOver();
+        }
+
+        function getRandomShape() {
+            const idx = Math.floor(Math.random() * SHAPES.length);
+            return JSON.parse(JSON.stringify(SHAPES[idx]));
+        }
+
+        function renderHand() {
+            handContainerEl.innerHTML = '';
+            hand.forEach((block, index) => {
+                const wrapper = document.createElement('div');
+                const isSelected = (selectedHandIndex === index);
+                const selectClass = isSelected ? 'selected-hand-slot' : '';
+                wrapper.className = `flex-1 h-full flex flex-col items-center justify-center cursor-grab active:cursor-grabbing relative p-1 transition-all duration-150 ${selectClass}`;
+                wrapper.dataset.index = index;
+
+                if (!block) {
+                    wrapper.innerHTML = `<div class="text-amber-900/30 text-xs font-bold serif-font">🏮</div>`;
+                    handContainerEl.appendChild(wrapper);
+                    return;
+                }
+
+                const matrix = block.matrix;
+                const rows = matrix.length;
+                const cols = matrix[0].length;
+
+                const blockGrid = document.createElement('div');
+                blockGrid.className = 'grid gap-0.5 pointer-events-none transition-transform duration-100';
+                blockGrid.style.gridTemplateRows = `repeat(${rows}, minmax(0, 1fr))`;
+                blockGrid.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+                
+                // ブロック形状のサイズに応じてセルの大きさを絶妙に可変
+                const cellSizeClass = rows > 2 || cols > 2 ? 'w-2.5 h-2.5' : 'w-3.5 h-3.5';
+                const colorData = COLOR_MAP[block.colorKey];
+
+                for (let r = 0; r < rows; r++) {
+                    for (let c = 0; c < cols; c++) {
+                        const cell = document.createElement('div');
+                        cell.className = `rounded-md ${cellSizeClass} shadow-md`;
+                        if (matrix[r][c] === 1) {
+                            cell.className += ` oriental-block bg-gradient-to-br ${colorData.tailwind}`;
+                        } else {
+                            cell.className += ' bg-transparent';
+                        }
+                        blockGrid.appendChild(cell);
+                    }
+                }
+
+                wrapper.appendChild(blockGrid);
+
+                // マウス・タッチ操作のバインド
+                wrapper.addEventListener('mousedown', (e) => startDrag(e, index, e.clientX, e.clientY));
+                wrapper.addEventListener('touchstart', (e) => {
+                    const touch = e.touches[0];
+                    startDrag(e, index, touch.clientX, touch.clientY);
+                }, { passive: false });
+
+                handContainerEl.appendChild(wrapper);
+            });
+        }
+
+        // ドラッグ開始
+        function startDrag(e, index, clientX, clientY) {
+            if (activeItemMode !== 'none') {
+                if (activeItemMode === 'deleteBlock') {
+                    handleHandClick(index);
+                }
+                return;
+            }
+            const block = hand[index];
+            if (!block) return;
+
+            e.preventDefault();
+            initAudio();
+
+            dragSrcIndex = index;
+            touchStartPos = { x: clientX, y: clientY };
+            isMovingDrag = false;
+            lastValidCell = null;
+
+            // ドラッグ開始時のみ画面バウンスを防ぐ
+            document.documentElement.style.touchAction = 'none';
+            document.body.style.touchAction = 'none';
+
+            if (e.type.startsWith('touch')) {
+                window.addEventListener('touchmove', handleMoveTouch, { passive: false });
+                window.addEventListener('touchend', handleEndTouch, { passive: false });
+            } else {
+                window.addEventListener('mousemove', handleMoveMouse);
+                window.addEventListener('mouseup', handleEndMouse);
+            }
+        }
+
+        // ドラッグ用クローンの生成（指に隠れないよう自動的に浮かせる）
+        function activateDragVisuals(clientX, clientY) {
+            const index = dragSrcIndex;
+            const block = hand[index];
+            if (!block) return;
+
+            const origSlot = handContainerEl.querySelector(`[data-index="${index}"]`);
+            if (!origSlot) return;
+
+            const blockGridOrig = origSlot.querySelector('.grid');
+            if (!blockGridOrig) return;
+            blockGridOrig.classList.add('opacity-20');
+
+            const rect = blockGridOrig.getBoundingClientRect();
+
+            activeDragEl = blockGridOrig.cloneNode(true);
+            activeDragEl.classList.add('fixed', 'pointer-events-none', 'z-50', 'transform', 'scale-110', 'drag-shadow');
+            
+            activeDragEl.style.width = `${rect.width}px`;
+            activeDragEl.style.height = `${rect.height}px`;
+
+            const liftY = 60;
+            dragOffset = {
+                x: rect.width / 2,
+                y: rect.height / 2 + liftY
+            };
+
+            updateDragElementPosition(clientX, clientY);
+            document.body.appendChild(activeDragEl);
+        }
+
+        function handleMoveMouse(e) {
+            if (dragSrcIndex === null) return;
+            
+            const dist = Math.hypot(e.clientX - touchStartPos.x, e.clientY - touchStartPos.y);
+            if (!isMovingDrag && dist > 8) {
+                isMovingDrag = true;
+                activateDragVisuals(e.clientX, e.clientY);
+            }
+
+            if (isMovingDrag && activeDragEl) {
+                updateDragElementPosition(e.clientX, e.clientY);
+                const targetCell = getCellFromCoords(e.clientX, e.clientY);
+                clearGhostPreview();
+                if (targetCell) {
+                    showGhostPreview(dragSrcIndex, targetCell.row, targetCell.col);
+                } else {
+                    lastValidCell = null;
+                }
+            }
+        }
+
+        function handleEndMouse(e) {
+            window.removeEventListener('mousemove', handleMoveMouse);
+            window.removeEventListener('mouseup', handleEndMouse);
+            
+            if (!isMovingDrag) {
+                handleHandSelect(dragSrcIndex);
+            } else {
+                finishDrag(e.clientX, e.clientY);
+            }
+            dragSrcIndex = null;
+            
+            // スクロールロック解除
+            document.documentElement.style.touchAction = '';
+            document.body.style.touchAction = '';
+        }
+
+        function handleMoveTouch(e) {
+            if (dragSrcIndex === null) return;
+            e.preventDefault(); // ドラッグ中の画面バウンスを100%防止
+            const touch = e.touches[0];
+
+            const dist = Math.hypot(touch.clientX - touchStartPos.x, touch.clientY - touchStartPos.y);
+            if (!isMovingDrag && dist > 8) {
+                isMovingDrag = true;
+                activateDragVisuals(touch.clientX, touch.clientY);
+            }
+
+            if (isMovingDrag && activeDragEl) {
+                updateDragElementPosition(touch.clientX, touch.clientY);
+                const targetCell = getCellFromCoords(touch.clientX, touch.clientY);
+                clearGhostPreview();
+                if (targetCell) {
+                    showGhostPreview(dragSrcIndex, targetCell.row, targetCell.col);
+                } else {
+                    lastValidCell = null;
+                }
+            }
+        }
+
+        function handleEndTouch(e) {
+            e.preventDefault();
+            window.removeEventListener('touchmove', handleMoveTouch);
+            window.removeEventListener('touchend', handleEndTouch);
+            
+            if (!isMovingDrag) {
+                handleHandSelect(dragSrcIndex);
+            } else {
+                const touch = e.changedTouches[0];
+                finishDrag(touch.clientX, touch.clientY);
+            }
+            dragSrcIndex = null;
+
+            // スクロールロック解除
+            document.documentElement.style.touchAction = '';
+            document.body.style.touchAction = '';
+        }
+
+        function updateDragElementPosition(clientX, clientY) {
+            if (activeDragEl) {
+                activeDragEl.style.left = `${clientX - dragOffset.x}px`;
+                activeDragEl.style.top = `${clientY - dragOffset.y}px`;
+            }
+        }
+
+        // 座標から最も適切なセル位置をマッピングする高精度スナップ
+        function getCellFromCoords(x, y) {
+            if (!activeDragEl || dragSrcIndex === null) return null;
+
+            const block = hand[dragSrcIndex];
+            if (!block) return null;
+
+            const matrix = block.matrix;
+            const blockRows = matrix.length;
+            const blockCols = matrix[0].length;
+
+            const blockLeft = x - dragOffset.x;
+            const blockTop = y - dragOffset.y;
+
+            const boardRect = boardEl.getBoundingClientRect();
+            
+            const colWidth = boardRect.width / BOARD_SIZE;
+            const rowHeight = boardRect.height / BOARD_SIZE;
+
+            const col = Math.round((blockLeft - boardRect.left) / colWidth);
+            const row = Math.round((blockTop - boardRect.top) / rowHeight);
+
+            if (row >= 0 && row + blockRows <= BOARD_SIZE && col >= 0 && col + blockCols <= BOARD_SIZE) {
+                return { row, col };
+            }
+            return null;
+        }
+
+        // ドロップ予測位置をゴールドに点灯
+        function showGhostPreview(handIdx, boardRow, boardCol) {
+            const block = hand[handIdx];
+            if (!block) return;
+
+            const matrix = block.matrix;
+            const rows = matrix.length;
+            const cols = matrix[0].length;
+
+            if (canPlace(matrix, boardRow, boardCol)) {
+                lastValidCell = { row: boardRow, col: boardCol };
+                
+                const cells = boardEl.children;
+                for (let r = 0; r < rows; r++) {
+                    for (let c = 0; c < cols; c++) {
+                        if (matrix[r][c] === 1) {
+                            const targetIdx = (boardRow + r) * BOARD_SIZE + (boardCol + c);
+                            if (targetIdx < cells.length) {
+                                cells[targetIdx].classList.add('bg-amber-600/30', 'ring-2', 'ring-amber-400/50', 'scale-105');
+                            }
+                        }
+                    }
+                }
+            } else {
+                lastValidCell = null;
+            }
+        }
+
+        function clearGhostPreview() {
+            const cells = boardEl.children;
+            for (let cell of cells) {
+                cell.classList.remove('bg-amber-600/30', 'ring-2', 'ring-amber-400/50', 'scale-105');
+            }
+        }
+
+        // 指を離したときのドロップ確定処理
+        function finishDrag(clientX, clientY) {
+            if (dragSrcIndex === null) return;
+
+            const origSlot = handContainerEl.querySelector(`[data-index="${dragSrcIndex}"]`);
+            if (origSlot) {
+                const blockGridOrig = origSlot.querySelector('.grid');
+                if (blockGridOrig) {
+                    blockGridOrig.classList.remove('opacity-20');
+                }
+            }
+
+            if (activeDragEl) {
+                activeDragEl.remove();
+                activeDragEl = null;
+            }
+
+            clearGhostPreview();
+
+            let targetCell = getCellFromCoords(clientX, clientY);
+            
+            const block = hand[dragSrcIndex];
+            if (block) {
+                const canPlaceAtTarget = targetCell && canPlace(block.matrix, targetCell.row, targetCell.col);
+                if (!canPlaceAtTarget && lastValidCell) {
+                    targetCell = lastValidCell;
+                }
+            }
+
+            if (targetCell) {
+                tryPlaceBlock(dragSrcIndex, targetCell.row, targetCell.col);
+            }
+            
+            lastValidCell = null;
+        }
+
+        // 手札のタップ選択制御（Tap-to-Place）
+        function handleHandSelect(index) {
+            if (selectedHandIndex === index) {
+                selectedHandIndex = null;
+                hideActionMessage();
+            } else {
+                selectedHandIndex = index;
+                playSound('item');
+                showActionMessage("配置したい盤面のマス（左上が基準）をタップしてね");
+            }
+            renderHand();
+        }
+
+        // 盤面タップ時の配置・破壊判定
+        function handleCellClick(row, col) {
+            if (activeItemMode === 'bomb') {
+                if (board[row][col] === 0) return;
+                const idx = row * BOARD_SIZE + col;
+                const cell = boardEl.children[idx];
+                cell.classList.add('cell-pop');
+
+                setTimeout(() => {
+                    board[row][col] = 0;
+                    items.bomb--;
+                    playSound('item');
+                    cancelItemMode();
+                    updateItemUI();
+                    updateBoardUI();
+                    checkLines();
+                    checkGameOver();
+                }, 200);
+                return;
+            }
+
+            // タップ＆タップでの配置処理
+            if (selectedHandIndex !== null) {
+                const block = hand[selectedHandIndex];
+                if (!block) {
+                    selectedHandIndex = null;
+                    renderHand();
+                    return;
+                }
+
+                const matrix = block.matrix;
+                if (canPlace(matrix, row, col)) {
+                    const tempIndex = selectedHandIndex;
+                    selectedHandIndex = null; 
+                    hideActionMessage();
+                    tryPlaceBlock(tempIndex, row, col);
+                } else {
+                    showActionMessage("そこには配置できません！空いた場所を選んでね");
+                    setTimeout(() => {
+                        if (selectedHandIndex !== null) {
+                            showActionMessage("配置したい盤面のマス（左上が基準）をタップしてね");
+                        }
+                    }, 1500);
+                }
+            }
+        }
+
+        function canPlace(matrix, startRow, startCol) {
+            const rows = matrix.length;
+            const cols = matrix[0].length;
+
+            if (startRow + rows > BOARD_SIZE || startCol + cols > BOARD_SIZE) {
+                return false;
+            }
+
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    if (matrix[r][c] === 1) {
+                        if (board[startRow + r][startCol + c] !== 0) {
+                            return false;
+                        }
+                    }
+                }
+            }
+            return true;
+        }
+
+        function tryPlaceBlock(handIdx, boardRow, boardCol) {
+            const block = hand[handIdx];
+            if (!block) return;
+
+            const matrix = block.matrix;
+            const rows = matrix.length;
+            const cols = matrix[0].length;
+
+            if (canPlace(matrix, boardRow, boardCol)) {
+                let cellCount = 0;
+                for (let r = 0; r < rows; r++) {
+                    for (let c = 0; c < cols; c++) {
+                        if (matrix[r][c] === 1) {
+                            board[boardRow + r][boardCol + c] = block.colorKey;
+                            cellCount++;
+                        }
+                    }
+                }
+
+                addScore(cellCount);
+                playSound('place');
+
+                hand[handIdx] = null;
+                renderHand();
+
+                checkLines();
+
+                if (hand.every(b => b === null)) {
+                    generateHand();
+                } else {
+                    checkGameOver();
+                }
+
+                updateBoardUI();
+            }
+        }
+
+        function checkLines() {
+            let fullRows = [];
+            let fullCols = [];
+
+            for (let r = 0; r < BOARD_SIZE; r++) {
+                if (board[r].every(cell => cell !== 0)) {
+                    fullRows.push(r);
+                }
+            }
+
+            for (let c = 0; c < BOARD_SIZE; c++) {
+                let colFull = true;
+                for (let r = 0; r < BOARD_SIZE; r++) {
+                    if (board[r][c] === 0) {
+                        colFull = false;
+                        break;
+                    }
+                }
+                if (colFull) {
+                    fullCols.push(c);
+                }
+            }
+
+            const totalLinesCleared = fullRows.length + fullCols.length;
+
+            if (totalLinesCleared > 0) {
+                combo++;
+                
+                const cells = boardEl.children;
+                
+                fullRows.forEach(r => {
+                    for (let c = 0; c < BOARD_SIZE; c++) {
+                        const cell = cells[r * BOARD_SIZE + c];
+                        cell.classList.add('cell-pop');
+                    }
+                });
+                fullCols.forEach(c => {
+                    for (let r = 0; r < BOARD_SIZE; r++) {
+                        const cell = cells[r * BOARD_SIZE + c];
+                        cell.classList.add('cell-pop');
+                    }
+                });
+
+                setTimeout(() => {
+                    fullRows.forEach(r => {
+                        board[r] = Array(BOARD_SIZE).fill(0);
+                    });
+                    fullCols.forEach(c => {
+                        for (let r = 0; r < BOARD_SIZE; r++) {
+                            board[r][c] = 0;
+                        }
+                    });
+
+                    const baseClearScore = ((totalLinesCleared * (totalLinesCleared + 1)) / 2) * 100;
+                    const comboBonusPoints = combo > 1 ? (combo - 1) * 50 : 0;
+                    const finalGain = baseClearScore + comboBonusPoints;
+
+                    addScore(finalGain);
+
+                    if (combo > 1) {
+                        showComboBadge(combo, comboBonusPoints);
+                        playSound('combo');
+                    } else {
+                        playSound('clear');
+                    }
+
+                    updateBoardUI();
+                    checkGameOver();
+                }, 350);
+
+            } else {
+                combo = 0;
+                hideComboBadge();
+            }
+        }
+
+        function checkGameOver() {
+            const activeHandIndices = [];
+            hand.forEach((b, idx) => {
+                if (b !== null) activeHandIndices.push(idx);
+            });
+
+            if (activeHandIndices.length === 0) return;
+
+            let anyCanPlace = false;
+
+            for (let handIdx of activeHandIndices) {
+                const block = hand[handIdx];
+                const matrix = block.matrix;
+
+                for (let r = 0; r < BOARD_SIZE; r++) {
+                    for (let c = 0; c < BOARD_SIZE; c++) {
+                        if (canPlace(matrix, r, c)) {
+                            anyCanPlace = true;
+                            break;
+                        }
+                    }
+                    if (anyCanPlace) break;
+                }
+                if (anyCanPlace) break;
+            }
+
+            if (!anyCanPlace) {
+                if (items.shuffle === 0 && items.deleteBlock === 0 && items.bomb === 0) {
+                    showGameOver();
+                } else {
+                    showActionMessage("配置不可！天命のパワーアップを使いましょう！");
+                }
+            } else {
+                if (activeItemMode === 'none' && selectedHandIndex === null) {
+                    hideActionMessage();
+                }
+            }
+        }
+
+        function addScore(points) {
+            score += points;
+            scoreValEl.textContent = score;
+
+            if (score > bestScore) {
+                bestScore = score;
+                bestValEl.textContent = bestScore;
+                localStorage.setItem('block_blast_best_dynasty_2d', bestScore);
+            }
+        }
+
+        // パワーアップアイテム機能
+        function updateItemUI() {
+            countShuffle.textContent = items.shuffle;
+            countDeleteBlock.textContent = items.deleteBlock;
+            countBomb.textContent = items.bomb;
+
+            btnShuffle.disabled = items.shuffle <= 0;
+            btnShuffle.style.opacity = items.shuffle <= 0 ? "0.3" : "1";
+
+            btnDeleteBlock.disabled = items.deleteBlock <= 0;
+            btnDeleteBlock.style.opacity = items.deleteBlock <= 0 ? "0.3" : "1";
+
+            btnBomb.disabled = items.bomb <= 0;
+            btnBomb.style.opacity = items.bomb <= 0 ? "0.3" : "1";
+        }
+
+        btnShuffle.addEventListener('click', () => {
+            if (items.shuffle <= 0) return;
+            initAudio();
+            
+            selectedHandIndex = null;
+            hand = hand.map(b => b === null ? null : getRandomShape());
+            items.shuffle--;
+            playSound('item');
+            updateItemUI();
+            renderHand();
+            checkGameOver();
+        });
+
+        btnDeleteBlock.addEventListener('click', () => {
+            if (items.deleteBlock <= 0) return;
+            initAudio();
+
+            selectedHandIndex = null;
+            if (activeItemMode === 'deleteBlock') {
+                cancelItemMode();
+            } else {
+                activeItemMode = 'deleteBlock';
+                showActionMessage("消去したい手札のブロックをタップしてください");
+                highlightDeleteBlockTargets(true);
+            }
+        });
+
+        function handleHandClick(index) {
+            if (activeItemMode !== 'deleteBlock') return;
+            if (hand[index] === null) return;
+
+            hand[index] = null;
+            items.deleteBlock--;
+            
+            playSound('item');
+            cancelItemMode();
+            updateItemUI();
+            renderHand();
+
+            if (hand.every(b => b === null)) {
+                generateHand();
+            } else {
+                checkGameOver();
+            }
+        }
+
+        function highlightDeleteBlockTargets(active) {
+            const wrappers = handContainerEl.children;
+            for (let i = 0; i < wrappers.length; i++) {
+                if (hand[i] !== null) {
+                    if (active) {
+                        wrappers[i].classList.add('ring-4', 'ring-red-500', 'animate-pulse');
+                    } else {
+                        wrappers[i].classList.remove('ring-4', 'ring-red-500', 'animate-pulse');
+                    }
+                }
+            }
+        }
+
+        btnBomb.addEventListener('click', () => {
+            if (items.bomb <= 0) return;
+            initAudio();
+
+            selectedHandIndex = null;
+            if (activeItemMode === 'bomb') {
+                cancelItemMode();
+            } else {
+                activeItemMode = 'bomb';
+                showActionMessage("破壊したい盤面の1マスをタップしてください");
+                highlightBombTargets(true);
+            }
+        });
+
+        function highlightBombTargets(active) {
+            const cells = boardEl.children;
+            for (let r = 0; r < BOARD_SIZE; r++) {
+                for (let c = 0; c < BOARD_SIZE; c++) {
+                    const idx = r * BOARD_SIZE + c;
+                    const cell = cells[idx];
+                    if (board[r][c] !== 0) {
+                        if (active) {
+                            cell.classList.add('ring-4', 'ring-yellow-500/70', 'animate-pulse');
+                        } else {
+                            cell.classList.remove('ring-4', 'ring-yellow-500/70', 'animate-pulse');
+                        }
+                    }
+                }
+            }
+        }
+
+        function cancelItemMode() {
+            highlightDeleteBlockTargets(false);
+            highlightBombTargets(false);
+            activeItemMode = 'none';
+            hideActionMessage();
+            renderHand();
+        }
+
+        function showActionMessage(msg) {
+            actionMsg.textContent = msg;
+            actionMsg.classList.remove('hidden');
+        }
+
+        function hideActionMessage() {
+            actionMsg.classList.add('hidden');
+        }
+
+        function showComboBadge(comboNum, bonus) {
+            comboCount.textContent = comboNum;
+            comboBonus.textContent = bonus;
+            comboBadge.classList.remove('hidden');
+            comboBadge.style.transform = 'scale(1)';
+        }
+
+        function hideComboBadge() {
+            comboBadge.classList.add('hidden');
+            comboBadge.style.transform = 'scale(0)';
+        }
+
+        function showGameOver() {
+            playSound('gameover');
+            finalScoreEl.textContent = score;
+            finalBestEl.textContent = bestScore;
+            gameoverModalEl.classList.remove('hidden');
+            setTimeout(() => {
+                gameoverModalEl.querySelector('div').classList.remove('scale-95');
+                gameoverModalEl.querySelector('div').classList.add('scale-100');
+            }, 10);
+        }
+
+        function hideGameover() {
+            gameoverModalEl.classList.add('hidden');
+            gameoverModalEl.querySelector('div').classList.remove('scale-100');
+            gameoverModalEl.querySelector('div').classList.add('scale-95');
+        }
+
+        btnRestart.addEventListener('click', initGame);
+
+        window.onload = function() {
+            initGame();
+        };
+    </script>
+</body>
+</html>
